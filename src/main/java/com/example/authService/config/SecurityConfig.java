@@ -28,14 +28,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(c -> c.disable());
-        http.authorizeHttpRequests(auth -> auth
-    .requestMatchers("/api/auth/login").permitAll()
-    .requestMatchers("/api/auth/add-manager").hasAuthority("ROLE_ADMIN")
-    .requestMatchers("/api/upload/**").hasAnyAuthority("ROLE_ADMIN","ROLE_MANAGER")
-    .requestMatchers("/api/email/**").hasAnyAuthority("ROLE_ADMIN","ROLE_MANAGER")
-    .anyRequest().authenticated()
-);
 
+        http.authorizeHttpRequests(auth -> auth
+            // 🔓 Public endpoints (no authentication needed)
+            .requestMatchers(
+                "/api/auth/login",
+                "/api/auth/forgot-password",
+                "/api/auth/reset-password",
+                "/reset-password.html" // in case you serve static reset page from backend
+            ).permitAll()
+
+            // 🔐 Admin-only
+            .requestMatchers("/api/auth/add-manager").hasAuthority("ROLE_ADMIN")
+
+            // 🔐 Logged-in users (either Admin or Manager)
+            .requestMatchers("/api/auth/change-password").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
+            .requestMatchers("/api/upload/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
+            .requestMatchers("/api/email/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
+
+            // 🔒 Everything else requires authentication
+            .anyRequest().authenticated()
+        );
 
         http.addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 

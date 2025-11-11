@@ -1,4 +1,6 @@
 package com.example.authService.entity;
+
+import java.time.LocalDateTime;
 import java.util.Set;
 
 import jakarta.persistence.CollectionTable;
@@ -31,7 +33,7 @@ public class AppUser {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
+    @Column
     private String contactNumber;
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -40,32 +42,75 @@ public class AppUser {
     @Column(name = "role")
     private Set<Role> roles;
 
-    public AppUser() {}
+    // new fields for reset token
+    private String resetToken;
+    private LocalDateTime resetTokenExpiry;
 
-    public AppUser(String username, String email, String contactNumber, String password, Set<Role> roles) {
-        this.username = username;
-        this.email = email;
-        this.contactNumber = contactNumber;
-        this.password = password;
-        this.roles = roles;
+    public AppUser() {
     }
 
     // getters and setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getUsername() {
+        return username;
+    }
 
-    public String getContactNumber() { return contactNumber; }
-    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public String getEmail() {
+        return email;
+    }
 
-    public Set<Role> getRoles() { return roles; }
-    public void setRoles(Set<Role> roles) { this.roles = roles; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public void setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
+    }
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    public LocalDateTime getResetTokenExpiry() {
+        return resetTokenExpiry;
+    }
+
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
+        this.resetTokenExpiry = resetTokenExpiry;
+    }
 }
