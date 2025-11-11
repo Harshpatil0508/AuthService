@@ -5,10 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.authService.dto.AuthRequest;
 import com.example.authService.dto.AuthResponse;
@@ -32,27 +29,7 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
-    @PostMapping("/register")
-public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-    Role r;
-    switch (request.getRole().toUpperCase()) {
-        case "ADMIN": r = Role.ROLE_ADMIN; break;
-        case "MANAGER": r = Role.ROLE_MANAGER; break;
-        default: r = Role.ROLE_USER;
-    }
-
-    userService.createUser(
-        request.getUsername(),
-        request.getEmail(),
-        request.getContactNumber(),
-        request.getPassword(),
-        Set.of(r)
-    );
-
-    return ResponseEntity.ok("User created successfully");
-}
-
-
+    // ✅ LOGIN ENDPOINT
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request) {
         AppUser user = userService.findByUsername(request.getUsername())
@@ -63,5 +40,18 @@ public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         Set<String> roles = user.getRoles().stream().map(Enum::name).collect(Collectors.toSet());
         String token = jwtUtil.generateToken(user.getUsername(), roles);
         return ResponseEntity.ok(new AuthResponse(token));
+    }
+
+    // ✅ ADMIN-ONLY ENDPOINT TO ADD MANAGER
+    @PostMapping("/add-manager")
+    public ResponseEntity<?> addManager(@RequestBody RegisterRequest request) {
+        userService.createUser(
+                request.getUsername(),
+                request.getPassword(),
+                request.getEmail(),
+                request.getContactNumber(),
+                Set.of(Role.ROLE_MANAGER)
+        );
+        return ResponseEntity.ok("Manager added successfully");
     }
 }
