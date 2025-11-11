@@ -53,61 +53,31 @@ public class UserService {
     String subject = "Welcome to the Admin Portal";
     String htmlMessage = """
         <html>
-        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f8; padding: 30px; margin: 0;">
-            <table align="center" width="100%" style="max-width: 600px; background: #ffffff; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden;">
-            
-            <!-- Header -->
-            <tr>
-                <td style="background: linear-gradient(135deg, #28a745, #218838); color: white; text-align: center; padding: 20px 0;">
-                <h2 style="margin: 0; font-size: 22px;">🎉 Welcome to the Team!</h2>
-                </td>
-            </tr>
-
-            <!-- Body -->
-            <tr>
-                <td style="padding: 30px 40px; color: #333333;">
-                <h3 style="margin-top: 0;">Hello %s 👋</h3>
-
-                <p style="font-size: 15px; line-height: 1.6;">
-                    You’ve been successfully added as a <b>Manager</b> by the Admin.
-                </p>
-
-                <p style="font-size: 15px; margin-bottom: 15px;">Here are your login details:</p>
-
-                <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
-                    <tr>
-                    <td style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; width: 40%; font-weight: bold;">Username:</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">%s</td>
-                    </tr>
-                    <tr>
-                    <td style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Password:</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">%s</td>
-                    </tr>
-                </table>
-
-                <p style="font-size: 14px; color: #555; line-height: 1.6;">
-                    🔐 For your security, please log in and <b>change your password</b> after your first login.
-                </p>
-
-                <p style="margin-top: 25px; font-size: 14px;">
-                    Best Regards,<br>
-                    <b>Admin Team</b>
-                </p>
-
-                <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
-
-                <p style="font-size: 12px; color: #999; text-align: center;">
-                    © 2025 Your Company Name. All rights reserved.
-                </p>
-                </td>
-            </tr>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+            <h2>Welcome, %s 👋</h2>
+            <p>You’ve been added as a <b>Manager</b> by the Admin.</p>
+            <p>Here are your login details:</p>
+            <table style="border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 6px;"><b>Username:</b></td>
+                    <td style="padding: 6px;">%s</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px;"><b>Password:</b></td>
+                    <td style="padding: 6px;">%s</td>
+                </tr>
             </table>
+            <p>Please log in and change your password after first use for security reasons.</p>
+            <br>
+            <p>Best Regards,<br>Admin Team</p>
         </body>
         </html>
         """.formatted(username, username, password);
 
     emailService.sendHtmlMessage(email, subject, htmlMessage);
 }
+
+
 
     // Generate token and send reset mail
     public void initiatePasswordReset(String email) {
@@ -123,44 +93,16 @@ public class UserService {
         String subject = "Password Reset Request";
         String message = """
                 <html>
-                <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f8; padding: 30px; margin: 0;">
-                    <table align="center" width="100%" style="max-width: 600px; background: #ffffff; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden;">
-                    <tr>
-                        <td style="background: linear-gradient(135deg, #007bff, #0056b3); color: white; text-align: center; padding: 20px 0;">
-                        <h2 style="margin: 0; font-size: 22px;">🔒 Password Reset Request</h2>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 30px 40px; color: #333333;">
-                        <p style="font-size: 16px;">Hello <strong>%s</strong>,</p>
-
-                        <p style="font-size: 15px; line-height: 1.6;">
-                            We received a request to reset your password. Click the button below to reset it.
-                        </p>
-
-                        <p style="text-align: center; margin: 30px 0;">
-                            <a href="%s" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; font-size: 16px; border-radius: 6px; display: inline-block;">
-                            Reset Password
-                            </a>
-                        </p>
-
-                        <p style="font-size: 14px; color: #555;">
-                            ⏳ This link will expire in <strong>10 minutes</strong>.
-                        </p>
-
-                        <p style="font-size: 14px; color: #777; line-height: 1.6;">
-                            If you didn’t request this, you can safely ignore this email. Your password will remain unchanged.
-                        </p>
-
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
-
-                        <p style="font-size: 12px; color: #999; text-align: center;">
-                            This is an automated message, please do not reply to this email.<br>
-                            &copy; 2025 Your Company Name. All rights reserved.
-                        </p>
-                        </td>
-                    </tr>
-                    </table>
+                <body style="font-family: Arial, sans-serif;">
+                    <h3>Password Reset Request</h3>
+                    <p>Hello %s,</p>
+                    <p>We received a request to reset your password. Click the button below to proceed:</p>
+                    <p>
+                        <a href="%s" style="background-color:#007bff;color:white;
+                        padding:10px 15px;text-decoration:none;border-radius:5px;">Reset Password</a>
+                    </p>
+                    <p>This link is valid for 10 minutes.</p>
+                    <p>If you didn’t request this, just ignore this email.</p>
                 </body>
                 </html>
                 """.formatted(user.getUsername(), resetLink);
