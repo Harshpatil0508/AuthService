@@ -36,20 +36,29 @@ public class AppUser {
     @Column
     private String contactNumber;
 
+    @Column(unique = true)
+    private String employeeId;   // ✅ New field for Employee ID
+
+    @Column
+    private String designation;  // ✅ New field for Designation
+    @Column(nullable = false)
+    private boolean approved = false;
+
+    
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private Set<Role> roles;
 
-    // new fields for reset token
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
 
+    // constructors, getters, setters
     public AppUser() {
     }
 
-    // getters and setters
     public Long getId() {
         return id;
     }
@@ -90,6 +99,22 @@ public class AppUser {
         this.contactNumber = contactNumber;
     }
 
+    public String getEmployeeId() {
+        return employeeId;
+    }
+
+    public void setEmployeeId(String employeeId) {
+        this.employeeId = employeeId;
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+
+    public void setDesignation(String designation) {
+        this.designation = designation;
+    }
+
     public Set<Role> getRoles() {
         return roles;
     }
@@ -105,7 +130,13 @@ public class AppUser {
     public void setResetToken(String resetToken) {
         this.resetToken = resetToken;
     }
+    public boolean isApproved() {
+        return approved;
+    }
 
+    public void setApproved(boolean approved) {
+        this.approved = approved;
+    }
     public LocalDateTime getResetTokenExpiry() {
         return resetTokenExpiry;
     }
@@ -113,4 +144,6 @@ public class AppUser {
     public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
         this.resetTokenExpiry = resetTokenExpiry;
     }
+
+    
 }

@@ -33,85 +33,148 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-    public void createUser(String username, String password, String email, String contactNumber, Set<Role> roles) {
-    if (userRepository.findByUsername(username).isPresent()) {
-        throw new RuntimeException("Username already exists");
-    }
-    if (userRepository.findByEmail(email).isPresent()) {
-        throw new RuntimeException("Email already exists");
-    }
+    // ✅ Create Manager (by Admin)
+    public void createUser(String username, String password, String email, String contactNumber,
+                       String employeeId, String designation, Set<Role> roles) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new RuntimeException("Username already exists");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
 
-    AppUser user = new AppUser();
-    user.setUsername(username);
-    user.setPassword(passwordEncoder.encode(password));
-    user.setEmail(email);
-    user.setContactNumber(contactNumber);
-    user.setRoles(roles);
-    userRepository.save(user);
+        AppUser user = new AppUser();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setEmail(email);
+        user.setContactNumber(contactNumber);
+        user.setEmployeeId(employeeId);
+        user.setDesignation(designation);
+        user.setRoles(roles);
+        user.setApproved(true); // Manager created by admin → auto-approved
+        userRepository.save(user);
 
-    // ✅ Send welcome HTML email
-    String subject = "Welcome to the Admin Portal";
-    String htmlMessage = """
-        <html>
-        <body style="font-family: Arial, sans-serif; color: #333;">
-            <h2>Welcome, %s 👋</h2>
-            <p>You’ve been added as a <b>Manager</b> by the Admin.</p>
-            <p>Here are your login details:</p>
-            <table style="border-collapse: collapse;">
-                <tr>
-                    <td style="padding: 6px;"><b>Username:</b></td>
-                    <td style="padding: 6px;">%s</td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px;"><b>Password:</b></td>
-                    <td style="padding: 6px;">%s</td>
-                </tr>
-            </table>
-            <p>Please log in and change your password after first use for security reasons.</p>
-            <br>
-            <p>Best Regards,<br>Admin Team</p>
-        </body>
-        </html>
+        // ✅ Send welcome email
+        String subject = "Welcome to the Admin Portal";
+        String htmlMessage = """
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #333;">
+                <h2>Welcome, %s 👋</h2>
+                <p>You’ve been added as a <b>Manager</b> by the Admin.</p>
+                <p>Here are your login details:</p>
+                <table style="border-collapse: collapse;">
+                    <tr><td><b>Username:</b></td><td>%s</td></tr>
+                    <tr><td><b>Password:</b></td><td>%s</td></tr>
+                </table>
+                <p>Please change your password after your first login.</p>
+                <br><p>Best Regards,<br>Admin Team</p>
+            </body>
+            </html>
         """.formatted(username, username, password);
 
-    emailService.sendHtmlMessage(email, subject, htmlMessage);
-}
+        emailService.sendHtmlMessage(email, subject, htmlMessage);
+    }
 
+    // ✅ New: User Registration (requires admin approval)
+    public void registerUser(String username, String password, String email, String contactNumber,
+                             String employeeId, String designation) {
 
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Email already registered");
+        }
 
-    // Generate token and send reset mail
+        AppUser user = new AppUser();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setEmail(email);
+        user.setContactNumber(contactNumber);
+        user.setEmployeeId(employeeId != null ? employeeId : "EMP-" + System.currentTimeMillis());
+        user.setDesignation(designation);
+        user.setRoles(Set.of(Role.ROLE_USER));
+        user.setApproved(false); // admin approval pending
+
+        userRepository.save(user);
+
+        // ✅ Notify user
+        String subject = "Registration Received - Pending Approval";
+        String message = """
+            <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h3>Registration Submitted</h3>
+                <p>Dear %s,</p>
+                <p>Thank you for registering! Your account is pending admin approval.</p>
+                <p>You’ll receive an email once your request has been approved or rejected.</p>
+                <p>Employee ID: <b>%s</b><br>
+                Designation: <b>%s</b></p>
+            </body>
+            </html>
+        """.formatted(username, user.getEmployeeId(), designation);
+
+        emailService.sendHtmlMessage(email, subject, message);
+    }
+
+    // ✅ Approve or Reject registration
+    public void updateApprovalStatus(Long userId, boolean approve) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setApproved(approve);
+        userRepository.save(user);
+
+        String subject = approve ? "Registration Approved 🎉" : "Registration Rejected ❌";
+        String message;
+
+        if (approve) {
+            message = """
+                <html>
+                <body>
+                    <p>Dear %s,</p>
+                    <p>Your account has been <b>approved</b> by the admin.</p>
+                    <p>You can now log in using your registered credentials.</p>
+                </body>
+                </html>
+            """.formatted(user.getUsername());
+        } else {
+            message = """
+                <html>
+                <body>
+                    <p>Dear %s,</p>
+                    <p>We regret to inform you that your registration has been <b>rejected</b> by the admin.</p>
+                </body>
+                </html>
+            """.formatted(user.getUsername());
+        }
+
+        emailService.sendHtmlMessage(user.getEmail(), subject, message);
+    }
+
+    // ✅ Forgot password
     public void initiatePasswordReset(String email) {
         AppUser user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
         String token = UUID.randomUUID().toString();
         user.setResetToken(token);
-        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10)); // valid for 10 mins
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10));
         userRepository.save(user);
 
         String resetLink = "http://localhost:8080/reset-password.html?token=" + token;
         String subject = "Password Reset Request";
         String message = """
-                <html>
-                <body style="font-family: Arial, sans-serif;">
-                    <h3>Password Reset Request</h3>
-                    <p>Hello %s,</p>
-                    <p>We received a request to reset your password. Click the button below to proceed:</p>
-                    <p>
-                        <a href="%s" style="background-color:#007bff;color:white;
-                        padding:10px 15px;text-decoration:none;border-radius:5px;">Reset Password</a>
-                    </p>
-                    <p>This link is valid for 10 minutes.</p>
-                    <p>If you didn’t request this, just ignore this email.</p>
-                </body>
-                </html>
-                """.formatted(user.getUsername(), resetLink);
+            <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h3>Password Reset</h3>
+                <p>Hello %s,</p>
+                <p>Click below to reset your password (valid for 10 mins):</p>
+                <a href="%s" style="background-color:#007bff;color:white;padding:10px 15px;text-decoration:none;border-radius:5px;">Reset Password</a>
+            </body>
+            </html>
+        """.formatted(user.getUsername(), resetLink);
 
         emailService.sendHtmlMessage(email, subject, message);
-
     }
 
-    // Complete reset process
+    // ✅ Reset password logic
     public void resetPassword(String token, String newPassword) {
         AppUser user = userRepository.findByResetToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
@@ -129,5 +192,60 @@ public class UserService {
     public void saveUser(AppUser user) {
         userRepository.save(user);
     }
+    // ✅ Create Pending User (User Registration)
+    public void createPendingUser(String username, String password, String email, String contactNumber,
+                        String employeeId, String designation, Set<Role> roles) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new RuntimeException("Username already exists");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        AppUser user = new AppUser();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setEmail(email);
+        user.setContactNumber(contactNumber);
+        user.setEmployeeId(employeeId);
+        user.setDesignation(designation);
+        user.setRoles(roles);
+        user.setApproved(false); // pending admin approval
+        userRepository.save(user);
+
+        // Send mail to user
+        String subject = "Registration Received - Pending Approval";
+        String html = """
+            <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h3>Welcome, %s!</h3>
+                <p>Thank you for registering. Your account is pending admin approval.</p>
+                <p>You will receive an email once your registration is approved or rejected.</p>
+                <br><p>Regards,<br>Admin Team</p>
+            </body>
+            </html>
+        """.formatted(username);
+
+        emailService.sendHtmlMessage(email, subject, html);
+    }
+
+    // ✅ Approve User
+    public AppUser approveUser(String username) {
+        AppUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setApproved(true);
+        userRepository.save(user);
+        return user;
+    }
+
+    // ✅ Reject User
+    public AppUser rejectUser(String username) {
+        AppUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setApproved(false);
+        userRepository.save(user);
+        return user;
+    }
 
 }
+

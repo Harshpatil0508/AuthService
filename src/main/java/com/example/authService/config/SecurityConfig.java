@@ -27,26 +27,30 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(c -> c.disable());
+        http.csrf(csrf -> csrf.disable());
+        http.cors(cors -> {}); // Enable CORS if needed for frontend
 
         http.authorizeHttpRequests(auth -> auth
-            // 🔓 Public endpoints (no authentication needed)
+            // 🔓 Public endpoints
             .requestMatchers(
                 "/api/auth/login",
+                "/api/auth/register",
                 "/api/auth/forgot-password",
                 "/api/auth/reset-password",
-                "/reset-password.html" // in case you serve static reset page from backend
+                "/reset-password.html"
             ).permitAll()
 
-            // 🔐 Admin-only
-            .requestMatchers("/api/auth/add-manager").hasAuthority("ROLE_ADMIN")
+            // 🔐 Admin-only operations
+            .requestMatchers(
+                "/api/auth/add-user",
+                "/api/auth/approve-user",
+                "/api/auth/reject-user"
+            ).hasAuthority("ROLE_ADMIN")
 
-            // 🔐 Logged-in users (either Admin or Manager)
-            .requestMatchers("/api/auth/change-password").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
-            .requestMatchers("/api/upload/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
-            .requestMatchers("/api/email/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
+            // 🔐 Authenticated users (Admin, Manager, User)
+            .requestMatchers("/api/auth/change-password").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER", "ROLE_USER")
 
-            // 🔒 Everything else requires authentication
+            // 🔒 Everything else must be authenticated
             .anyRequest().authenticated()
         );
 

@@ -17,6 +17,7 @@ import com.example.authService.dto.RegisterRequest;
 import com.example.authService.entity.AppUser;
 import com.example.authService.entity.Role;
 import com.example.authService.security.JwtUtil;
+import com.example.authService.service.EmailService;
 import com.example.authService.service.UserService;
 
 @RestController
@@ -26,11 +27,13 @@ public class AuthController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailService emailService;
 
-    public AuthController(UserService userService, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthController(UserService userService, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.emailService = emailService;
     }
 
     // ✅ LOGIN ENDPOINT
@@ -43,23 +46,63 @@ public class AuthController {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
 
+        if (!user.isApproved()) {
+            return ResponseEntity.status(403).body("Your account is pending admin approval.");
+        }
+
         Set<String> roles = user.getRoles().stream().map(Enum::name).collect(Collectors.toSet());
         String token = jwtUtil.generateToken(user.getUsername(), roles);
 
         return ResponseEntity.ok(new AuthResponse(token));
     }
 
-    // ✅ ADMIN ADD MANAGER
-    @PostMapping("/add-manager")
+    // ✅ ADMIN ADD MANAGER (immediate approval)
+    @PostMapping("/add-user")
     public ResponseEntity<?> addManager(@RequestBody RegisterRequest request) {
         userService.createUser(
                 request.getUsername(),
                 request.getPassword(),
                 request.getEmail(),
                 request.getContactNumber(),
+                request.getEmployeeId(),
+                request.getDesignation(),
                 Set.of(Role.ROLE_MANAGER)
         );
-        return ResponseEntity.ok("Manager added successfully");
+        return ResponseEntity.ok("User added successfully");
+    }
+
+    // ✅ USER REGISTRATION (Pending Approval)
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
+        userService.createPendingUser(
+                request.getUsername(),
+                request.getPassword(),
+                request.getEmail(),
+                request.getContactNumber(),
+                request.getEmployeeId(),
+                request.getDesignation(),
+                Set.of(Role.ROLE_USER)
+        );
+        return ResponseEntity.ok("Registration successful. Awaiting admin approval.");
+    }
+
+    // ✅ ADMIN APPROVES USER
+    @PostMapping("/approve-user")
+    public ResponseEntity<?> approveUser(@RequestParam String username) {
+        AppUser user = userService.approveUser(username);
+        return ResponseEntity.ok("User approved successfully and email sent to " + user.getEmail());
+    }
+
+    // ✅ ADMIN REJECTS USER
+    @PostMapping("/reject-user")
+    public ResponseEntity<?> rejectUser(@RequestParam String username) {
+        AppUser user = userService.rejectUser(username);
+        emailService.sendEmail(
+                user.getEmail(),
+                "Account Rejected",
+                "Dear " + user.getUsername() + ",\n\nWe regret to inform you that your registration has been rejected by the admin."
+        );
+        return ResponseEntity.ok("User rejected successfully and email sent.");
     }
 
     // ✅ FORGOT PASSWORD
@@ -75,6 +118,8 @@ public class AuthController {
         userService.resetPassword(token, newPassword);
         return ResponseEntity.ok("Password has been reset successfully.");
     }
+
+    // ✅ CHANGE PASSWORD
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(
             @RequestParam String username,
@@ -93,5 +138,4 @@ public class AuthController {
 
         return ResponseEntity.ok("Password changed successfully");
     }
-
 }

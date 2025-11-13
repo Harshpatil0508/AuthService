@@ -30,6 +30,8 @@ public class AuthServiceApplication {
                 admin.setEmail("ishathakur2504@gmail.com");
                 admin.setContactNumber("7972460819");
                 admin.setRoles(Set.of(Role.ROLE_ADMIN));
+                admin.setApproved(true);
+
 
                 userRepository.save(admin);
 
